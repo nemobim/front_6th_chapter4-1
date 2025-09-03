@@ -1,5 +1,6 @@
 import express from "express";
 import fs from "node:fs/promises";
+import { mockServer } from "./src/mocks/server-mock.js";
 
 // 환경 변수 및 상수 설정
 const isProduction = process.env.NODE_ENV === "production";
@@ -9,15 +10,20 @@ const base = process.env.BASE || (isProduction ? "/front_6th_chapter4-1/vanilla/
 // Express 앱 생성
 const app = express();
 
-// 템플릿과 렌더 함수 변수
+// HTML 템플릿
 let template;
+// SSR 함수: 컴포넌트를 HTML로 변환
 let render;
+// 개발 서버 인스턴스
 let vite;
+
+mockServer.listen({
+  onUnhandledRequest: "bypass",
+});
 
 // 환경별 설정
 if (!isProduction) {
   // 개발 환경: Vite 개발 서버 연동
-  console.log("🛠️ 개발 환경 - Vite 설정 중...");
   const { createServer } = await import("vite");
   vite = await createServer({
     server: { middlewareMode: true },
@@ -26,14 +32,13 @@ if (!isProduction) {
   });
   app.use(vite.middlewares);
 } else {
-  // 프로덕션 환경: 압축 및 정적 파일 서빙
-  console.log("🏭 프로덕션 미들웨어 설정 중...");
+  // 빌드된 파일들을 gzip 압축으로 전송 (성능 최적화)
   const compression = (await import("compression")).default;
   const sirv = (await import("sirv")).default;
   app.use(compression());
   app.use(base, sirv("./dist/vanilla", { extensions: [] }));
 
-  // 프로덕션 템플릿 로드
+  // 빌드된 템플릿과 렌더 함수 로드
   template = await fs.readFile("./dist/vanilla/index.html", "utf-8");
   render = (await import("./dist/vanilla-ssr/main-server.js")).render;
 }
@@ -43,7 +48,6 @@ app.use("*all", async (req, res) => {
   try {
     // URL에서 베이스 경로 제거 (정규화)
     const url = req.originalUrl.replace(base, "");
-    console.log("🌐 SSR 요청:", url);
 
     if (!isProduction) {
       // 개발 환경: 매 요청마다 최신 템플릿과 렌더 함수 로드
@@ -52,18 +56,16 @@ app.use("*all", async (req, res) => {
       render = (await vite.ssrLoadModule("/src/main-server.js")).render;
     }
 
+    //React 컴포넌트를 HTML로 변환
     const rendered = await render(url, req.query);
 
-    // 초기 데이터 스크립트 생성 (Hydration용)
-    const initialDataScript = rendered.initialData
-      ? `<script>window.__INITIAL_DATA__ = ${JSON.stringify(rendered.initialData)}</script>`
-      : "";
+    //window.__INITIAL_DATA__로 클라이언트에 초기 데이터 전달 (Hydration용)
 
-    // HTML 템플릿에 렌더링 결과 주입
+    // 템플릿의 플레이스홀더를 실제 컨텐츠로 교체
     const html = template
       .replace("<!--app-head-->", rendered.head ?? "")
-      .replace("<!--app-html-->", rendered.html ?? "")
-      .replace("</head>", `${initialDataScript}</head>`);
+      .replace(`<!--app-data-->`, `<script>window.__INITIAL_DATA__ = ${rendered.initialData}</script>`)
+      .replace("<!--app-html-->", rendered.html ?? "");
 
     res.status(200).set({ "Content-Type": "text/html" }).send(html);
   } catch (error) {
