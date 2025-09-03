@@ -1,6 +1,6 @@
 import express from "express";
 import fs from "node:fs/promises";
-import { mockServer } from "./src/mocks/server-mock.js";
+import { mockServer } from "./src/mocks/mockServer.js";
 
 // 환경 변수 및 상수 설정
 const isProduction = process.env.NODE_ENV === "production";
@@ -10,16 +10,16 @@ const base = process.env.BASE || (isProduction ? "/front_6th_chapter4-1/vanilla/
 // Express 앱 생성
 const app = express();
 
+mockServer.listen({
+  onUnhandledRequest: "bypass",
+});
+
 // HTML 템플릿
 let template;
 // SSR 함수: 컴포넌트를 HTML로 변환
 let render;
 // 개발 서버 인스턴스
 let vite;
-
-mockServer.listen({
-  onUnhandledRequest: "bypass",
-});
 
 // 환경별 설정
 if (!isProduction) {
@@ -45,6 +45,7 @@ if (!isProduction) {
 
 // SSR 렌더링 미들웨어
 app.use("*all", async (req, res) => {
+  console.log("🚀 ~ app.use ~ req:", req, "res:", res);
   try {
     // URL에서 베이스 경로 제거 (정규화)
     const url = req.originalUrl.replace(base, "");
