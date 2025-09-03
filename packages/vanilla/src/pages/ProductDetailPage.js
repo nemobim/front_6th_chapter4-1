@@ -1,6 +1,6 @@
-import { productStore } from "../stores";
-import { loadProductDetailForPage } from "../services";
 import { router, withLifecycle } from "../router";
+import { loadProductDetailForPage } from "../services";
+import { PRODUCT_ACTIONS, productStore } from "../stores";
 import { PageWrapper } from "./PageWrapper.js";
 
 const loadingContent = `
@@ -237,6 +237,24 @@ function ProductDetail({ product, relatedProducts = [] }) {
 export const ProductDetailPage = withLifecycle(
   {
     onMount: () => {
+      if (typeof window === "undefined") {
+        console.log("이 코드는 서버에서 실행이 되고 ");
+        return;
+      }
+      if (window.__INITIAL_DATA__?.product?.productId === router.params.id) {
+        console.log("이 코드는 클라이언트에서 실행이 되는데, __INITIAL_DATA__ 가 있을 때에만!");
+        const { product, relatedProducts } = window.__INITIAL_DATA__;
+        productStore.dispatch({
+          type: PRODUCT_ACTIONS.SETUP,
+          payload: {
+            product,
+            relatedProducts,
+            loading: false,
+            status: "done",
+          },
+        });
+        return;
+      }
       loadProductDetailForPage(router.params.id);
     },
     watches: [() => [router.params.id], () => loadProductDetailForPage(router.params.id)],
