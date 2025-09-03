@@ -52,7 +52,7 @@ app.use("*all", async (req, res) => {
       render = (await vite.ssrLoadModule("/src/main-server.js")).render;
     }
 
-    const rendered = await render(url);
+    const rendered = await render(url, req.query);
 
     // 초기 데이터 스크립트 생성 (Hydration용)
     const initialDataScript = rendered.initialData
