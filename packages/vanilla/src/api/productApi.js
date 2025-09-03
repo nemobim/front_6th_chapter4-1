@@ -1,12 +1,12 @@
-// 서버 환경에서 사용할 기본 URL
-const getBaseUrl = () => {
-  if (typeof window !== "undefined") {
-    return ""; // 브라우저에서는 상대 경로 사용
+// 서버/클라이언트 환경에 따른 API base URL 설정
+const getApiBaseUrl = () => {
+  if (typeof window === "undefined") {
+    // 서버 환경
+    return "http://localhost:5174";
+  } else {
+    // 클라이언트 환경
+    return "";
   }
-
-  // 서버에서는 절대 경로 사용
-  const port = process.env.NODE_ENV === "production" ? 4174 : 5174;
-  return `http://localhost:${port}`;
 };
 
 export async function getProducts(params = {}) {
@@ -22,17 +22,29 @@ export async function getProducts(params = {}) {
     sort,
   });
 
-  const response = await fetch(`${getBaseUrl()}/api/products?${searchParams}`);
+  const baseUrl = getApiBaseUrl();
+  const url = `${baseUrl}/api/products?${searchParams}`;
+  console.log("🌐 API 호출:", url);
+
+  const response = await fetch(url);
 
   return await response.json();
 }
 
 export async function getProduct(productId) {
-  const response = await fetch(`${getBaseUrl()}/api/products/${productId}`);
+  const baseUrl = getApiBaseUrl();
+  const url = `${baseUrl}/api/products/${productId}`;
+  console.log("🌐 API 호출:", url);
+
+  const response = await fetch(url);
   return await response.json();
 }
 
 export async function getCategories() {
-  const response = await fetch(`${getBaseUrl()}/api/categories`);
+  const baseUrl = getApiBaseUrl();
+  const url = `${baseUrl}/api/categories`;
+  console.log("🌐 API 호출:", url);
+
+  const response = await fetch(url);
   return await response.json();
 }

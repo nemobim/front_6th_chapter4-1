@@ -27,6 +27,10 @@ export class BaseRouter {
     return this.#route;
   }
 
+  get routes() {
+    return this.#routes;
+  }
+
   get target() {
     return this.#route?.handler;
   }
@@ -49,7 +53,9 @@ export class BaseRouter {
       })
       .replace(/\//g, "\\/");
 
-    const regex = new RegExp(`^${this.#baseUrl}${regexPath}$`);
+    // baseUrl가 비어있으면 그냥 path 사용
+    const fullRegexPath = this.#baseUrl === "" ? regexPath : `${this.#baseUrl.replace(/\//g, "\\/")}${regexPath}`;
+    const regex = new RegExp(`^${fullRegexPath}$`);
 
     this.#routes.set(path, {
       regex,
@@ -59,23 +65,31 @@ export class BaseRouter {
   }
 
   findRoute(url) {
-    const { pathname } = new URL(url, this.getOrigin());
-    for (const [routePath, route] of this.#routes) {
-      const match = pathname.match(route.regex);
-      if (match) {
-        const params = {};
-        route.paramNames.forEach((name, index) => {
-          params[name] = match[index + 1];
-        });
+    try {
+      const { pathname } = new URL(url, this.getOrigin());
 
-        return {
-          ...route,
-          params,
-          path: routePath,
-        };
+      for (const [routePath, route] of this.#routes) {
+        const match = pathname.match(route.regex);
+        if (match) {
+          console.log("✅ 라우트 매칭 성공:", routePath);
+          const params = {};
+          route.paramNames.forEach((name, index) => {
+            params[name] = match[index + 1];
+          });
+
+          return {
+            ...route,
+            params,
+            path: routePath,
+          };
+        }
       }
+      console.log("❌ 매칭되는 라우트 없음");
+      return null;
+    } catch (error) {
+      console.error("❌ findRoute 오류:", error);
+      return null;
     }
-    return null;
   }
 
   updateRoute(url) {

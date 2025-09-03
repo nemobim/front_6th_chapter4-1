@@ -44,7 +44,7 @@ if (!isProduction) {
 }
 
 // SSR 렌더링 미들웨어
-app.use("*all", async (req, res) => {
+app.get(/^(?!.*\/api).*$/, async (req, res) => {
   try {
     // URL에서 베이스 경로 제거 (정규화)
     const url = req.originalUrl.replace(base, "");

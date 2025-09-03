@@ -1,7 +1,7 @@
 import { ProductList, SearchBar } from "../components";
-import { PRODUCT_ACTIONS, productStore } from "../stores";
 import { router, withLifecycle } from "../router";
 import { loadProducts, loadProductsAndCategories } from "../services";
+import { productStore } from "../stores";
 import { PageWrapper } from "./PageWrapper.js";
 
 export const HomePage = withLifecycle(
@@ -11,22 +11,15 @@ export const HomePage = withLifecycle(
         console.log("이 코드는 서버에서 실행이 되고 ");
         return;
       }
-      if (window.__INITIAL_DATA__?.products?.length > 0) {
-        console.log("이 코드는 클라이언트에서 실행이 되는데, __INITIAL_DATA__ 가 있을 때에만!");
-        const { products, categories, totalCount } = window.__INITIAL_DATA__;
-        productStore.dispatch({
-          type: PRODUCT_ACTIONS.SETUP,
-          payload: {
-            products,
-            categories,
-            totalCount,
-            loading: false,
-            status: "done",
-          },
-        });
+
+      // SSR에서 발생한 hydration이 있으면 로딩 건너뛰기
+      const currentState = productStore.getState();
+      if (currentState.products?.length > 0 && currentState.status === "done") {
+        console.log("✅ 이미 SSR 데이터가 로드되어 있음");
         return;
       }
-      console.log("이 코드는 아무것도 없을 때!");
+
+      console.log("🔄 CSR로 데이터 로딩 시작");
       loadProductsAndCategories();
     },
     watches: [

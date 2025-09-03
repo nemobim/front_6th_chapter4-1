@@ -36,22 +36,31 @@ const createBaseStoreState = () => ({
  */
 export const render = async (url, query) => {
   try {
-    router.start(url, query);
+    // ServerRouter에 맞게 URL 설정
+    router.setUrl(url, "http://localhost");
+    router.query = query;
+    router.start();
 
     const route = router.route;
     if (!route) {
+      console.log("❌ 라우트를 찾을 수 없음 - URL:", url);
+      for (const [path] of router.routes) {
+        console.log("  -", path);
+      }
       return {
         head: "<title>페이지를 찾을 수 없습니다</title>",
         html: NotFoundPage(),
-        initialData: {},
+        initialData: JSON.stringify({}),
       };
     }
 
     let head;
     let initialData;
 
-    // 홈페이지 처리
+    // 홈페이지 처리 - route.path 대신 route.path 사용
     if (route.path === "/") {
+      console.log("✅ 홈페이지 라우트 매칭됨");
+      console.log("🔍 쿼리 파라미터:", router.query);
       try {
         const [productsResponse, categories] = await Promise.all([getProducts(router.query), getCategories()]);
 
@@ -64,13 +73,14 @@ export const render = async (url, query) => {
 
         updateStore(storeState);
 
-        head = "<title>쇼핑몰</title>";
-        initialData = {
+        head = "<title>쇼핑몰 - 홈</title>";
+        initialData = JSON.stringify({
           products: storeState.products,
           categories: storeState.categories,
           totalCount: storeState.totalCount,
-        };
+        });
       } catch (error) {
+        console.error("❌ 홈페이지 데이터 로딩 실패:", error);
         const errorState = {
           ...createBaseStoreState(),
           error: error.message,
@@ -79,15 +89,16 @@ export const render = async (url, query) => {
 
         updateStore(errorState);
 
-        initialData = {
+        initialData = JSON.stringify({
           products: [],
           categories: {},
           totalCount: 0,
-        };
+        });
       }
     }
     // 상품 상세 페이지 처리
     else if (route.path === "/product/:id/") {
+      console.log("✅ 상품상세 라우트 매칭됨");
       const productId = route.params.id;
 
       try {
@@ -111,12 +122,13 @@ export const render = async (url, query) => {
 
         updateStore(storeState);
 
-        head = `<title>쇼핑몰 상세 - ${product.title}</title>`;
-        initialData = {
-          product,
+        head = `<title>${product.title} - 쇼핑몰</title>`;
+        initialData = JSON.stringify({
+          currentProduct: product,
           relatedProducts,
-        };
+        });
       } catch (error) {
+        console.error("❌ 상품상세 데이터 로딩 실패:", error);
         const errorState = {
           ...createBaseStoreState(),
           error: error.message,
@@ -125,10 +137,10 @@ export const render = async (url, query) => {
 
         updateStore(errorState);
 
-        initialData = {
-          product: null,
+        initialData = JSON.stringify({
+          currentProduct: null,
           relatedProducts: [],
-        };
+        });
       }
     }
 

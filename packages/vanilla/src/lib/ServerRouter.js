@@ -6,19 +6,19 @@ import { BaseRouter } from "./BaseRouter.js";
 export class ServerRouter extends BaseRouter {
   #currentUrl = "/";
   #origin = "http://localhost";
+  #queryParams = {}; // 서버에서 전달받은 쿼리 파라미터 저장
 
   constructor(baseUrl = "") {
     super(baseUrl);
   }
 
   get query() {
-    const url = new URL(this.#currentUrl, this.#origin);
-    return BaseRouter.parseQuery(url.search);
+    // 서버에서 설정된 쿼리 파라미터 사용
+    return this.#queryParams;
   }
 
   set query(newQuery) {
-    const newUrl = BaseRouter.getUrl(newQuery, this.baseUrl, this.#currentUrl);
-    this.setUrl(newUrl, this.#origin);
+    this.#queryParams = { ...newQuery };
   }
 
   getCurrentUrl() {
