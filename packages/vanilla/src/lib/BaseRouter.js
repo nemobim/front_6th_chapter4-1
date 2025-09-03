@@ -40,7 +40,7 @@ export class BaseRouter {
   }
 
   /**
-   * 라우트 등록
+   * 라우트 등록 - 개발/프로덕션 환경 모두 지원
    * @param {string} path - 경로 패턴 (예: "/product/:id")
    * @param {Function} handler - 라우트 핸들러
    */
@@ -53,35 +53,62 @@ export class BaseRouter {
       })
       .replace(/\//g, "\\/");
 
-    // baseUrl가 비어있으면 그냥 path 사용
-    const fullRegexPath = this.#baseUrl === "" ? regexPath : `${this.#baseUrl.replace(/\//g, "\\/")}${regexPath}`;
-    const regex = new RegExp(`^${fullRegexPath}$`);
+    // 여러 패턴을 만들어서 다양한 환경 지원
+    const patterns = [];
+
+    // 1. 기본 패턴 (개발 환경)
+    patterns.push(new RegExp(`^${regexPath}$`));
+
+    // 2. baseUrl이 있는 경우 (프로덕션 환경)
+    if (this.#baseUrl && this.#baseUrl !== "" && this.#baseUrl !== "/") {
+      patterns.push(new RegExp(`^${this.#baseUrl.replace(/\//g, "\\/")}${regexPath}$`));
+    }
+
+    // 3. 후행 슬래시 변형들
+    if (regexPath !== "" && !regexPath.endsWith("\\/")) {
+      patterns.push(new RegExp(`^${regexPath}\\/$`));
+      if (this.#baseUrl && this.#baseUrl !== "" && this.#baseUrl !== "/") {
+        patterns.push(new RegExp(`^${this.#baseUrl.replace(/\//g, "\\/")}${regexPath}\\/$`));
+      }
+    }
+
+    console.log(
+      `🔄 라우트 등록: ${path} -> baseUrl: "${this.#baseUrl}" -> patterns:`,
+      patterns.map((p) => p.toString()),
+    );
 
     this.#routes.set(path, {
-      regex,
+      patterns,
       paramNames,
       handler,
     });
   }
 
   findRoute(url) {
+    console.log("🔍 findRoute 시작 - url:", url, "baseUrl:", this.#baseUrl);
+
     try {
       const { pathname } = new URL(url, this.getOrigin());
+      console.log("🔍 URL 파싱 성공 - pathname:", pathname);
 
       for (const [routePath, route] of this.#routes) {
-        const match = pathname.match(route.regex);
-        if (match) {
-          console.log("✅ 라우트 매칭 성공:", routePath);
-          const params = {};
-          route.paramNames.forEach((name, index) => {
-            params[name] = match[index + 1];
-          });
+        console.log("🔍 라우트 매칭 시도 - routePath:", routePath);
 
-          return {
-            ...route,
-            params,
-            path: routePath,
-          };
+        for (const pattern of route.patterns) {
+          const match = pathname.match(pattern);
+          if (match) {
+            console.log("✅ 라우트 매칭 성공:", routePath, "with pattern:", pattern.toString());
+            const params = {};
+            route.paramNames.forEach((name, index) => {
+              params[name] = match[index + 1];
+            });
+
+            return {
+              ...route,
+              params,
+              path: routePath,
+            };
+          }
         }
       }
       console.log("❌ 매칭되는 라우트 없음");
