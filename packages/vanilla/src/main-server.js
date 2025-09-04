@@ -153,12 +153,56 @@ export const render = async (url, query) => {
       initialData,
     };
   } catch (error) {
-    console.error("❌ SSR 에러:", error);
+    console.error("❌ SSR 전체 에러:", error.message, error.stack);
 
-    return {
-      head: "<title>에러</title>",
-      html: "<div>서버 오류가 발생했습니다.</div>",
-      initialData: JSON.stringify({ error: error.message }),
-    };
+    // 에러 발생 시에도 기본 홈페이지로 대체 렌더링
+    try {
+      // 기본 상태로 스토어 설정
+      const fallbackState = {
+        products: [],
+        totalCount: 0,
+        categories: {},
+        currentProduct: null,
+        relatedProducts: [],
+        loading: false,
+        error: error.message,
+        status: "error",
+      };
+      updateStore(fallbackState);
+
+      // 기본 renderProps 설정
+      const fallbackRenderProps = {
+        products: [],
+        categories: {},
+        totalCount: 0,
+        searchQuery: query.search || "",
+        limit: query.limit || 20,
+        sort: query.sort || "price_asc",
+        category: {
+          category1: query.category1 || "",
+          category2: query.category2 || "",
+        },
+      };
+
+      const html = HomePage(fallbackRenderProps);
+
+      return {
+        head: "<title>쇼핑몰 - 홈</title>",
+        html,
+        initialData: JSON.stringify({
+          products: [],
+          categories: {},
+          totalCount: 0,
+          error: error.message,
+        }),
+      };
+    } catch (fallbackError) {
+      console.error("❌ Fallback 렌더링 실패:", fallbackError.message);
+      return {
+        head: "<title>에러 - 쇼핑몰</title>",
+        html: NotFoundPage(),
+        initialData: JSON.stringify({ error: "서버 오류가 발생했습니다" }),
+      };
+    }
   }
 };
