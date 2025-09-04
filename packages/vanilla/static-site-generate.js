@@ -9,10 +9,10 @@ const BASE = "/front_6th_chapter4-1/vanilla/";
 
 // 단일 라우트를 렌더링하고 파일로 저장
 async function writeRoute(url, template, outFile) {
-  const { html, head, data } = await render(url, {});
+  const { html, head, initialData } = await render(url, {});
   const result = template
     .replace(`<!--app-head-->`, head ?? "")
-    .replace(`<!--app-data-->`, `<script>window.__INITIAL_DATA__ = ${data}</script>`)
+    .replace(`<!--app-data-->`, `<script>window.__INITIAL_DATA__ = ${initialData}</script>`)
     .replace(`<!--app-html-->`, html ?? "");
 
   // 디렉토리가 없으면 생성

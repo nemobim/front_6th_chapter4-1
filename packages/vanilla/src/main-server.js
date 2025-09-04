@@ -3,10 +3,10 @@ import { HomePage, NotFoundPage, ProductDetailPage } from "./pages";
 import { router } from "./router";
 import { PRODUCT_ACTIONS, productStore } from "./stores";
 
-// 라우터 등록
-router.addRoute("/", HomePage);
+// 라우터 등록 - 구체적인 라우트부터 등록해야 함
 router.addRoute("/product/:id/", ProductDetailPage);
-router.addRoute(".*", NotFoundPage);
+router.addRoute("/", HomePage);
+router.addRoute(".*", NotFoundPage); // 와일드카드는 마지막에
 
 // 스토어 디스패치 헬퍼 함수
 const updateStore = (payload) => {
