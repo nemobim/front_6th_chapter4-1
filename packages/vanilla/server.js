@@ -4,7 +4,7 @@ import { mockServer } from "./src/mocks/mockServer.js";
 
 // 환경 변수 및 상수 설정
 const isProduction = process.env.NODE_ENV === "production";
-const port = process.env.PORT || 5174; // SSR 포트
+const port = process.env.PORT || 5173; // SSR 포트
 const base = process.env.BASE || (isProduction ? "/front_6th_chapter4-1/vanilla/" : "/");
 
 // Express 앱 생성
@@ -46,9 +46,6 @@ if (!isProduction) {
 // SSR 렌더링 미들웨어
 app.get(/^(?!.*\/api).*$/, async (req, res) => {
   try {
-    // URL에서 베이스 경로 제거 (정규화)
-    const url = req.originalUrl.replace(base, "");
-
     if (!isProduction) {
       // 개발 환경: 매 요청마다 최신 템플릿과 렌더 함수 로드
       template = await fs.readFile("./index.html", "utf-8");
@@ -56,6 +53,8 @@ app.get(/^(?!.*\/api).*$/, async (req, res) => {
       render = (await vite.ssrLoadModule("/src/main-server.js")).render;
     }
 
+    // URL에서 베이스 경로 제거 (정규화)
+    const url = req.originalUrl.replace(base, "");
     //React 컴포넌트를 HTML로 변환
     const rendered = await render(url, req.query);
 
